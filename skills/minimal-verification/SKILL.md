@@ -1,7 +1,9 @@
 ---
 name: minimal-verification
-description: Use when implementation is complete and the agent is about to run tests, lint, builds, or other verification before reporting completion or creating a PR.
+description: Choose the smallest credible verification set and avoid redundant checks. Use when implementation is complete and the agent is about to run tests, lint, builds, or other verification before reporting completion or creating a PR.
+license: MIT
 ---
+
 # Minimal Verification
 
 Use the smallest verification set that gives credible evidence for the change.
