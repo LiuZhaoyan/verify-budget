@@ -1,47 +1,96 @@
 # verify-budget
 
-A lightweight Agent Skill for choosing the smallest verification set that gives
-credible evidence for a change, without repeating checks that already passed.
-The skill is named `minimal-verification`.
+A lightweight Agent Skill that keeps verification proportional to the change.
 
-## When to use
+Coding agents often over-verify after implementation: rerunning tests that already passed, launching repo-wide lint or typechecks for small edits, or repeating the same checks before commit, push, and PR creation.
 
-Use after implementation, before running tests, lint, formatting checks, builds,
-or reporting completion or creating a PR. It favors focused checks and respects
-verification required by project instructions or acceptance criteria.
+`verify-budget` gives the agent a simple rule:
 
-This is guidance for an agent, not an automated test runner. It adds no scripts,
-dependencies, or build system.
+> Run the smallest set of checks that provides credible evidence for the change.
 
-## Local installation (Codex)
+It does not reduce required verification. It avoids redundant verification.
 
-Clone the repository and copy the skill into your personal skills directory:
+## What it changes
+
+Without a verification budget, an agent may do this:
+
+```text
+focused test
+→ implementation
+→ focused test
+→ larger test suite
+→ lint
+→ formatter check
+→ repeat tests before commit
+→ repeat again before PR
+```
+
+With `minimal-verification`:
+
+```text
+implementation
+→ relevant focused tests
+→ necessary changed-file checks
+→ done
+```
+
+Expensive repository-wide checks can be delegated to CI or a subagent when they are not required in the main workflow.
+
+## Principles
+
+The skill encourages agents to:
+
+* run directly related focused tests after the final relevant edit;
+* avoid rerunning passing tests when the covered code has not changed;
+* prefer changed-file lint and formatting checks over repo-wide commands;
+* avoid full test suites, builds, typechecks, or E2E unless they are actually required;
+* delegate expensive verification to CI or subagents when appropriate;
+* avoid duplicating verification already completed by a trusted subagent.
+
+Project instructions and explicit acceptance criteria always take precedence.
+
+## Install
+
+Clone the repository:
 
 ```sh
 git clone https://github.com/LiuZhaoyan/verify-budget.git
-cd verify-budget
-mkdir -p ~/.agents/skills
-cp -R skills/minimal-verification ~/.agents/skills/
-cp LICENSE ~/.agents/skills/minimal-verification/LICENSE
 ```
 
-If that skill is already installed, review local edits before replacing its files.
-To update, run `git pull --ff-only` in this clone and repeat the copy commands.
-You can also download the repository ZIP and copy the same directory and license.
+Install the skill into the cross-runtime Agent Skills directory:
 
-Codex discovers `~/.agents/skills/` automatically. If the skill does not appear,
-restart Codex. See the [Codex skills documentation](https://developers.openai.com/codex/skills/).
+```sh
+mkdir -p ~/.agents/skills
+cp -R verify-budget/skills/minimal-verification ~/.agents/skills/
+```
 
-Example prompt:
+Codex and other Agent Skills-compatible tools can discover skills from this directory.
+
+## Use
+
+The skill is designed to be loaded when implementation is complete and the agent is about to begin verification.
+
+You can also invoke it explicitly:
 
 ```text
-Use $minimal-verification to verify this change before creating the PR.
+Use $minimal-verification to verify this change.
 ```
 
-For example, after a focused test passes, creating the PR alone should not cause
-it to run again. A later relevant code edit should trigger the focused check again.
+The agent should then choose the smallest credible verification set before running commands.
 
-## Directory structure
+## Example
+
+Suppose a focused test already passed after the final implementation edit.
+
+Later, the agent stages the files and prepares a PR.
+
+Without this skill, it may rerun the same test suite simply because it reached a new workflow stage.
+
+With `minimal-verification`, staging, committing, pushing, or creating a PR are not themselves reasons to repeat an unchanged verification.
+
+If relevant code changes again, the corresponding focused test should run again.
+
+## Repository structure
 
 ```text
 verify-budget/
@@ -52,13 +101,14 @@ verify-budget/
         └── SKILL.md
 ```
 
-## Maintenance
+The project intentionally contains no runtime, dependencies, build system, or test framework. The behavior is defined entirely by the Agent Skill.
 
-Edit `skills/minimal-verification/SKILL.md` and submit a PR describing the behavior
-being changed. Keep the directory and frontmatter `name` aligned, and keep the
-`description` specific about purpose and triggers. Follow the
-[Agent Skills specification](https://agentskills.io/specification).
+## Why a Skill?
+
+This policy is useful across repositories, but it is also personal workflow guidance rather than a project-specific engineering requirement.
+
+Keeping it as a Skill allows it to be injected when verification begins without adding verification preferences to every repository's `AGENTS.md`.
 
 ## License
 
-[MIT](LICENSE). Keep the license notice when copying or redistributing the skill.
+MIT
